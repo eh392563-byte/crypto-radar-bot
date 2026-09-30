@@ -1,0 +1,34 @@
+name: Crypto Radar Bot Run
+
+on:
+  schedule:
+    # প্রতি ৩০ মিনিট পরপর স্বয়ংক্রিয়ভাবে চলবে
+    - cron: '*/30 * * * *'
+  # আপনার ইচ্ছামতো যেকোনো সময় ম্যানুয়ালি রান করার অপশন
+  workflow_dispatch:
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: কোড চেকআউট করা
+        uses: actions/checkout@v4
+
+      - name: পাইথন সেটআপ করা
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: ডিপেন্ডেন্সি ইনস্টল করা
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: ক্রিপ্টো রাডার স্ক্রিপ্ট চালানো
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          python main.py
