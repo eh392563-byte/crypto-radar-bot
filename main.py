@@ -7,19 +7,25 @@ TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 
 def send_telegram_message(text):
-    """টেলিগ্রাম চ্যাটে বার্তা পাঠানো"""
+    """টেলিগ্রাম চ্যাটে বার্তা পাঠানো (বড় মেসেজ হলে ভাগ করে পাঠাবে)"""
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload = {
-        "chat_id": TELEGRAM_CHAT_ID,
-        "text": text
-    }
-    try:
-        response = requests.post(url, json=payload, timeout=15)
-        if response.status_code != 200:
-            print(f"Telegram API Response: {response.text}")
-        response.raise_for_status()
-    except Exception as e:
-        print(f"Telegram error: {e}")
+    
+    # টেলিগ্রামের সীমা ৪০০০ অক্ষরের মধ্যে ভাগ করে পাঠানো
+    max_len = 3800
+    chunks = [text[i:i+max_len] for i in range(0, len(text), max_len)]
+    
+    for chunk in chunks:
+        payload = {
+            "chat_id": TELEGRAM_CHAT_ID,
+            "text": chunk
+        }
+        try:
+            response = requests.post(url, json=payload, timeout=15)
+            if response.status_code != 200:
+                print(f"Telegram API Response: {response.text}")
+            response.raise_for_status()
+        except Exception as e:
+            print(f"Telegram error: {e}")
 
 def get_latest_tokens():
     """DexScreener থেকে সর্বশেষ ১টি টোকেন সংগ্রহ"""
@@ -33,7 +39,7 @@ def get_latest_tokens():
     return []
 
 def analyze_token_with_groq(token):
-    """Groq openai/gpt-oss-120b দিয়ে বাংলায় সরাসরি সিকিউরিটি অ্যানালিসিস তৈরি"""
+    """Groq openai/gpt-oss-120b দিয়ে বাংলায় সংক্ষিপ্ত ও তথ্যবহুল অ্যানালিসিস তৈরি"""
     try:
         client = Groq(api_key=GROQ_API_KEY)
         
@@ -43,16 +49,16 @@ def analyze_token_with_groq(token):
         url = token.get("url", "")
 
         prompt = f"""
-তুমি একজন ক্রিপ্টো সিকিউরিটি স্পেশালিস্ট। নিচের নতুন টোকেনটির তথ্য ভালো করে পর্যালোচনা করে সম্পূর্ণ বাংলায় একটি স্পষ্ট অ্যানালিসিস দাও:
+তুমি একজন ক্রিপ্টো সিকিউরিটি স্পেশালিস্ট। নিচের নতুন টোকেনটির তথ্য পর্যালোচনা করে বাংলায় একটি স্পষ্ট ও সারসংক্ষেপ অ্যানালিসিস দাও (খুব বেশি বড় করবে না, পয়েন্ট আকারে সংক্ষেপে লিখবে):
 - ব্লকচেইন: {chain}
 - টোকেন অ্যাড্রেস: {token_address}
 - ডেসক্রিপশন: {description}
 - লিঙ্ক: {url}
 
-নিচের পয়েন্টগুলো খুব সুন্দর ও সহজ বাংলায় তুলে ধরো:
+পয়েন্টগুলো:
 ১. টোকেন পরিচিতি ও উদ্দেশ্য
-২. মার্কেট সেন্টিমেন্ট (ইতিবাচক / নিরপেক্ষ / নেতিবাচক)
-৩. রাগপুল ও স্ক্যাম ঝুঁকি (কম / মাঝারি / অতি উচ্চ ঝুঁকি)
+২. মার্কেট সেন্টিমেন্ট
+৩. রাগপুল ও স্ক্যাম ঝুঁকি (কম / মাঝারি / অতি উচ্চ)
 ৪. সতর্কতা উপদেশ
 """
         chat_completion = client.chat.completions.create(
