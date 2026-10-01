@@ -31,7 +31,7 @@ def get_latest_tokens():
     return []
 
 def analyze_token_with_groq(token):
-    """Groq Mixtral দিয়ে বাংলায় সরাসরি অ্যানালিসিস তৈরি"""
+    """Groq openai/gpt-oss-120b দিয়ে বাংলায় সরাসরি সিকিউরিটি অ্যানালিসিস তৈরি"""
     try:
         client = Groq(api_key=GROQ_API_KEY)
         
@@ -60,7 +60,7 @@ def analyze_token_with_groq(token):
                     "content": prompt,
                 }
             ],
-            model="mixtral-8x7b-32768",
+            model="openai/gpt-oss-120b",
         )
         return chat_completion.choices[0].message.content
     except Exception as e:
